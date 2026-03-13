@@ -63,25 +63,42 @@ class _HomePageState extends State<HomePage> {
 
     final veri = tumFilmVerileri[film['en']];
 
+    String aramaMetni = '';
+
     showModalBottomSheet(
       context: context,
       builder: (context) {
-        return Column(
-          children: [
-            Image.network(
-              veri!['Poster'],
-              height: 300,
-              fit: BoxFit.cover,
-              width: double.infinity,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                veri['Plot'], // açıklama
-                textAlign: TextAlign.center,
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              Image.network(
+                veri!['Poster'],
+                height: 300,
+                fit: BoxFit.cover,
+                width: double.infinity,
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Text(
+                      veri['Title'],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    Text('IMDb: ${veri['imdbRating']}'),
+                    Text('Yıl: ${veri['Year']}'),
+                    Text('Yönetmen: ${veri['Director']}'),
+                    const SizedBox(height: 8),
+                    Text(veri['Plot'], textAlign: TextAlign.center),
+                  ],
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -135,7 +152,12 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.search),
             color: Colors.white,
-            onPressed: () {},
+            onPressed: () {
+              showSearch(
+                context: context,
+                delegate: FilmArama(Filmler, tumFilmVerileri),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.person),
@@ -194,6 +216,102 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class FilmArama extends SearchDelegate {
+  final List<Map<String, String>> filmler;
+  final Map<String, dynamic> tumFilmVerileri;
+
+  FilmArama(this.filmler, this.tumFilmVerileri);
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    // sağdaki X butonu — arama metnini temizler
+    return [
+      IconButton(icon: const Icon(Icons.clear), onPressed: () => query = ''),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    // soldaki geri butonu
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () => close(context, null),
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    return _buildFilmListesi();
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    // yazdıkça burası çalışır
+    return _buildFilmListesi();
+  }
+
+  Widget _buildFilmListesi() {
+    final filtrelenmis = filmler.where((film) {
+      return film['tr']!.toLowerCase().contains(query.toLowerCase());
+    }).toList();
+
+    return ListView.builder(
+      itemCount: filtrelenmis.length,
+      itemBuilder: (context, index) {
+        final film = filtrelenmis[index];
+        final veri = tumFilmVerileri[film['en']];
+        return ListTile(
+          onTap: () {
+            close(context, null); // önce arama ekranını kapat
+            showModalBottomSheet(
+              context: context,
+              builder: (context) {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Image.network(
+                        veri!['Poster'],
+                        height: 300,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            Text(
+                              veri['Title'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            Text('IMDb: ${veri['imdbRating']}'),
+                            Text('Yıl: ${veri['Year']}'),
+                            Text('Yönetmen: ${veri['Director']}'),
+                            const SizedBox(height: 8),
+                            Text(veri['Plot'], textAlign: TextAlign.center),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+          leading: veri != null
+              ? Image.network(veri['Poster'], width: 50, fit: BoxFit.cover)
+              : const Icon(Icons.movie),
+          title: Text(film['tr']!),
+          subtitle: veri != null ? Text('IMDb: ${veri['imdbRating']}') : null,
+        );
+      },
     );
   }
 }
